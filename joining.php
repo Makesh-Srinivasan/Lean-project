@@ -1,25 +1,22 @@
 <?php
-    $cookie_id = 0;
-    $cookie_name_of_turf = "q";
-    $cookie_Date_0 = "q";
-    $cookie_avail_time = "q";
-    $cookie_nop = 0;
-    $cookie_avail_slots = 0;
-    setcookie($cookie_id, $cookie_name_of_turf, time() + (86400 * 30), "/"); // 86400 = 1 day     
-    setcookie($cookie_Date_0, $cookie_avail_time, time() + (86400 * 30), "/");
-    setcookie($cookie_nop, $cookie_avail_slots, time() + (86400 * 30), "/");
-
     if(isset($_POST["submit"])){
         if(!empty($_POST['name_of_turf']) && !empty($_POST['Date']) && !empty($_POST['Num_players'])) {
-            $time_table = array("0"=>"06:00-07:00", "1"=>"07:00-08:00", "2"=>"08:00-09:00", "3"=>"09:00-10:00", "4"=>"10:00-11:00", "5"=>"11:00-12:00", "6"=>"12:00-13:00", "7"=>"13:00-14:00", "8"=>"14:00-15:00", "9"=>"15:00-16:00", "10"=>"16:00-17:00", "11"=>"17:00-18:00");
-            $N_of_players = $_POST['Num_players'];
-            $Date_of_play = $_POST['Date'];
-            $name_of_turf = $_POST['name_of_turf'];
-            $already_booked = 10-$N_of_players;
-
+            // Connect to the database
             $con = mysqli_connect('localhost','root','^_^iambatman') or die(mysql_error());
             mysqli_select_db($con, 'Lean_proj') or die("cannot select DB");
 
+            // Create a look-up table for the time slots
+            $time_table = array("0"=>"06:00-07:00", "1"=>"07:00-08:00", "2"=>"08:00-09:00", "3"=>"09:00-10:00", "4"=>"10:00-11:00", "5"=>"11:00-12:00", "6"=>"12:00-13:00", "7"=>"13:00-14:00", "8"=>"14:00-15:00", "9"=>"15:00-16:00", "10"=>"16:00-17:00", "11"=>"17:00-18:00");
+            
+            // Get post variables from the form
+            $Date_of_play = $_POST['Date'];
+            $name_of_turf = $_POST['name_of_turf'];
+            $num_want_to_join = $_POST['Num_players'];
+            $already_booked = 10-$num_want_to_join;
+            setcookie("num_want_to_join", $num_want_to_join, time() + (86400 * 30), "/");
+            
+
+            // Select the tuples that meet the search conditions
             $query = mysqli_query($con, "SELECT * FROM Joining WHERE Turf_name='".$name_of_turf."' AND number_of_players<=$already_booked AND Date='".$Date_of_play."'");
             $numrows = mysqli_num_rows($query);
             echo '<table id="available_results">';
@@ -27,19 +24,17 @@
             $i = 1;
             if($numrows > 0 || $numrows){
                 while($row = mysqli_fetch_assoc($query)){
-                    $cookie_id = $i;
-                    $cookie_name_of_turf = $row['Turf_name'];
-                    $cookie_Date_0 = $row['Date'];
-                    $cookie_avail_time = $row['Time_available'];
+                    $join_tuple_row = $row['Join_ID'];
                     $cookie_nop = $row['number_of_players'];
-                    $cookie_avail_slots = 10 - $nop;
-                    setcookie($cookie_id, $cookie_name_of_turf, $cookie_Date_0, $cookie_avail_time, $cookie_nop, $cookie_avail_slots, time() + (86400 * 30), "/"); // 86400 = 1 day
-
+                    setcookie("join_tuple_row", $join_tuple_row, time() + (86400 * 30), "/");
+                    setcookie("cookie_nop", $cookie_nop, time() + (86400 * 30), "/");
                     $available_slots = 10-$row['number_of_players'];
-                    echo '<tr><td id="bor">'.$i.'</td><td id="bor">'.$row['Date'].'</td><td id="bor">'.$row['Turf_name'].'</td><td id="bor">'.$time_table[$row['Time_available']].'</td><td id="bor">'.$row['number_of_players'].'</td></td><td id="bor">'.$available_slots.'</td><td id="bor"><form action="" method="get" name="form_2" id="form_2"><input type="submit" id="button" name="join" class="button" value="Join"/></form></td></tr>';
+                    
+                    echo '<tr><td id="bor">'.$i.'</td><td id="bor">'.$row['Date'].'</td><td id="bor">'.$row['Turf_name'].'</td><td id="bor">'.$time_table[$row['Time_available']].'</td><td id="bor">'.$row['number_of_players'].'</td></td><td id="bor">'.$available_slots.'</td><td id="bor"><form action="" method="POST" name="form_2" id="form_2"><input type="submit" id="button" name="join" class="button" value="Join"/></form></td></tr>';
                     $i = $i + 1;
 
-                    setcookie(0, "", "", "", 0, 0, time() - 3600);
+                    setcookie("join_tuple_row", "", time() - 3600);
+                    setcookie("cookie_nop", "", time() - 3600);
                 }
             } else {
                 echo '<tr><td colspan="7" style="text-align:center;">There are no bookings in the turf you have selected</td></tr>';
@@ -49,12 +44,27 @@
     }
 
     function confirm_booking() {
-        if(isset($_COOKIE[$cookie_name_of_turf])){
-            echo $_COOKIE[$cookie_name_of_turf];
+        if(isset($_COOKIE['join_tuple_row']) && isset($_COOKIE['cookie_nop']) && isset($_COOKIE['num_want_to_join'])){
+            $con = mysqli_connect('localhost','root','^_^iambatman') or die(mysql_error());
+            mysqli_select_db($con, 'Lean_proj') or die("cannot select DB");
+
+            $Join_id = $_COOKIE["join_tuple_row"];
+            $players = $_COOKIE["cookie_nop"] + $_COOKIE["num_want_to_join"];
+            if($players == 0){
+                mysqli_query($con, "DELETE FROM Joining WHERE Join_ID='".$Join_id."'");
+            } else {
+                if (mysqli_query($con, "UPDATE Joining SET number_of_players=$players WHERE Join_ID=$Join_id")) {
+                    echo "successfully changed";
+                } 
+            }
+            
+            setcookie("num_want_to_join", "", time() - 3600);
+            setcookie("join_tuple_row", "", time() - 3600);
+            setcookie("cookie_nop", "", time() - 3600);
         }
     }
 
-    if(isset($_GET["join"])){
+    if(isset($_POST["join"])){
         confirm_booking();
     }
 ?>
