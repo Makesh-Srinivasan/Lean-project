@@ -214,11 +214,11 @@ function validate_input($data) {
     <body>
         <div id="form_section">
             <div id="titles">
-                <h1>Data visualisation and analysis on COVID-19 in India and in your state</h1>
+                <h1>FastFut</h1>
                 <p>
-                    <i>Register and enjoy exclusive benefits and features we provide on our site </i>
+                    <i>A one place stop for anything football. Got some players but not a team? Find other players in your city and get footballing</i>
                 </p>
-                <h1>Welcome</h1>
+                <h1>Welcome!</h1>
             </div>
             <form action="" method="POST" name="form_1" id="form_1">
                 <div class="fields">

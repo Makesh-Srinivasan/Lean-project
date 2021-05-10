@@ -1,4 +1,10 @@
 <?php
+session_start();
+if(!isset($_SESSION["sess_email"])){
+    header("location:lean_login.php");
+}
+?>
+<?php
     if(isset($_POST["submit"])){
         if(!empty($_POST['name_of_turf']) && !empty($_POST['Date']) && !empty($_POST['Num_players'])) {
             // Connect to the database
